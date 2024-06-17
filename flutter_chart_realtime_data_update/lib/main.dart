@@ -7,19 +7,25 @@ import 'package:charts_with_datagrid/datagrid.dart';
 
 void main() {
   runApp(const MaterialApp(
-    home: SfChartWithDataGridDemo(),
+    home: CartesianChart(),
     debugShowCheckedModeBanner: false,
   ));
 }
 
-class SfChartWithDataGridDemo extends StatefulWidget {
-  const SfChartWithDataGridDemo({super.key});
+class CartesianChart extends StatefulWidget {
+  const CartesianChart({super.key});
 
   @override
-  SfChartWithDataGridDemoState createState() => SfChartWithDataGridDemoState();
+  CartesianChartState createState() => CartesianChartState();
 }
 
-class SfChartWithDataGridDemoState extends State<SfChartWithDataGridDemo> {
+class CartesianChartState extends State<CartesianChart> {
+  VoidCallback? _updateChart;
+  VoidCallback? _updateSorting;
+  late EmployeeDataSource _source;
+  SortingOrder _sortingOrder = SortingOrder.none;
+  String _sortby = 'x';
+  ChartSeriesController? _controller;
   final List<Employee> _employees = <Employee>[
     Employee('Lara', 80),
     Employee('James', 60),
@@ -31,63 +37,40 @@ class SfChartWithDataGridDemoState extends State<SfChartWithDataGridDemo> {
     Employee('David', 70),
     Employee('Valentino', 55),
   ];
-  late EmployeeDataSource _employeeDataSource;
-  DataGridController dataGridController = DataGridController();
-  VoidCallback? updateChart;
-  VoidCallback? updateSorting;
-  SortingOrder _sortingOrder = SortingOrder.none;
-  String _sortby = 'x';
-  bool allowDataEditing = false;
-  ChartSeriesController<Employee, String>? seriesController;
 
   @override
   void initState() {
     super.initState();
-    updateChart = _updateDataSource;
-    updateSorting = _updateSorting;
-
-    _employeeDataSource =
-        EmployeeDataSource(_employees, context, updateChart!, _updateSorting);
+    _updateChart = _updateDataSource;
+    _updateSorting = _updateDataSorting;
+    _source = EmployeeDataSource(
+      _employees,
+      _updateChart!,
+      _updateSorting!,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
+    Size size = MediaQuery.of(context).size;
+    double width = size.width;
+    double height = size.height;
     return Scaffold(
-      appBar:
-          AppBar(title: const Text('Syncfusion Flutter Charts with DataGrid')),
       body: Padding(
         padding: const EdgeInsets.all(5.0),
-        child: Column(
+        child: Row(
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: width * 0.75,
-                    height: height,
-                    child: _buildLineChart(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: SizedBox(
-                      width: width * 0.2,
-                      height: height,
-                      child: _buildDataGrid(allowDataEditing: allowDataEditing),
-                    ),
-                  ),
-                ],
-              ),
+            SizedBox(
+              width: width * 0.75,
+              height: height,
+              child: _buildColumnChart(),
             ),
-            Center(
-              child: ElevatedButton(
-                onPressed: () => {
-                  setState(() {
-                    allowDataEditing = !allowDataEditing;
-                  })
-                },
-                child: const Text('Edit Data'),
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: SizedBox(
+                width: width * 0.2,
+                height: height,
+                child: _buildDataGrid(),
               ),
             ),
           ],
@@ -96,19 +79,18 @@ class SfChartWithDataGridDemoState extends State<SfChartWithDataGridDemo> {
     );
   }
 
-  SfDataGrid _buildDataGrid({bool allowDataEditing = false}) {
+  SfDataGrid _buildDataGrid() {
     const TextStyle textStyle = TextStyle(fontWeight: FontWeight.bold);
     return SfDataGrid(
       columnWidthMode: ColumnWidthMode.fill,
-      source: _employeeDataSource,
-      controller: dataGridController,
-      allowEditing: allowDataEditing,
+      source: _source,
       navigationMode: GridNavigationMode.cell,
       selectionMode: SelectionMode.single,
       gridLinesVisibility: GridLinesVisibility.both,
       headerGridLinesVisibility: GridLinesVisibility.both,
-      allowSorting: allowDataEditing,
-      allowTriStateSorting: allowDataEditing,
+      allowEditing: true,
+      allowSorting: true,
+      allowTriStateSorting: true,
       columns: <GridColumn>[
         GridColumn(
           columnName: 'name',
@@ -132,9 +114,11 @@ class SfChartWithDataGridDemoState extends State<SfChartWithDataGridDemo> {
     );
   }
 
-  SfCartesianChart _buildLineChart() {
+  SfCartesianChart _buildColumnChart() {
     return SfCartesianChart(
-      primaryXAxis: const CategoryAxis(),
+      primaryXAxis: const CategoryAxis(
+        majorGridLines: MajorGridLines(width: 0),
+      ),
       primaryYAxis: const NumericAxis(
         minimum: 0,
         maximum: 100,
@@ -142,16 +126,15 @@ class SfChartWithDataGridDemoState extends State<SfChartWithDataGridDemo> {
       series: <ColumnSeries>[
         ColumnSeries<Employee, String>(
           color: const Color.fromRGBO(99, 85, 199, 1),
-          dataSource: _employeeDataSource.employees,
-          xValueMapper: (Employee employee, _) => employee.name,
-          yValueMapper: (Employee employee, _) => employee.yValue,
-          sortingOrder: _sortingOrder,
-          sortFieldValueMapper: (Employee employee, _) =>
+          dataSource: _source.employees,
+          xValueMapper: (Employee employee, int index) => employee.name,
+          yValueMapper: (Employee employee, int index) => employee.yValue,
+          sortFieldValueMapper: (Employee employee, int index) =>
               _sortby == 'name' ? employee.name : employee.yValue,
+          sortingOrder: _sortingOrder,
           dataLabelSettings: const DataLabelSettings(isVisible: true),
-          markerSettings: const MarkerSettings(isVisible: true),
-          onRendererCreated: (controller) {
-            seriesController = controller;
+          onRendererCreated: (ChartSeriesController controller) {
+            _controller = controller;
           },
         ),
       ],
@@ -159,28 +142,26 @@ class SfChartWithDataGridDemoState extends State<SfChartWithDataGridDemo> {
   }
 
   void _updateDataSource() {
-    int editedDataIndex = _employeeDataSource.editedRowIndex;
-    seriesController?.updateDataSource(updatedDataIndex: editedDataIndex);
+    _controller?.updateDataSource(updatedDataIndex: _source.editedRowIndex);
   }
 
-  void _updateSorting() {
+  void _updateDataSorting() {
     setState(
       () {
-        _sortingOrder =
-            _employeeDataSource.sortDirection == DataGridSortingOrder.ascending
-                ? SortingOrder.ascending
-                : _employeeDataSource.sortDirection ==
-                        DataGridSortingOrder.descending
-                    ? SortingOrder.descending
-                    : SortingOrder.none;
-        _sortby = _employeeDataSource.sortedColumnName.toString();
+        _sortingOrder = _source.sortDirection == DataGridSortingOrder.ascending
+            ? SortingOrder.ascending
+            : _source.sortDirection == DataGridSortingOrder.descending
+                ? SortingOrder.descending
+                : SortingOrder.none;
+        _sortby = _source.sortedColumnName.toString();
       },
     );
   }
 
   @override
   void dispose() {
-    updateChart = null;
+    _updateChart = null;
+    _updateSorting = null;
     super.dispose();
   }
 }

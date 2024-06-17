@@ -4,27 +4,27 @@ import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class EmployeeDataSource extends DataGridSource {
-  EmployeeDataSource(this.employees, this.buildContext, this.updateChart,
-      this.updateChartSorting) {
-    dataGridRows = employees
+  EmployeeDataSource(
+      this.employees, this._updateChartData, this._updateChartSorting) {
+    _dataGridRows = employees
         .map<DataGridRow>((dataGridRow) => dataGridRow.buildDataGridRow())
         .toList();
   }
 
   List<Employee> employees = [];
-  List<DataGridRow> dataGridRows = [];
-  BuildContext buildContext;
-  VoidCallback updateChart;
-  VoidCallback updateChartSorting;
   int editedRowIndex = -1;
   String? sortedColumnName;
   DataGridSortingOrder sortDirection = DataGridSortingOrder.none;
-  DataGridSortingOrder _previousSortDirection = DataGridSortingOrder.none;
   dynamic newCellValue;
-  TextEditingController editingController = TextEditingController();
+
+  List<DataGridRow> _dataGridRows = [];
+  final VoidCallback _updateChartData;
+  final VoidCallback _updateChartSorting;
+  DataGridSortingOrder _previousSortDirection = DataGridSortingOrder.none;
+  final TextEditingController _editingController = TextEditingController();
 
   @override
-  List<DataGridRow> get rows => dataGridRows;
+  List<DataGridRow> get rows => _dataGridRows;
 
   @override
   DataGridRowAdapter? buildRow(DataGridRow row) {
@@ -58,7 +58,7 @@ class EmployeeDataSource extends DataGridSource {
             ?.value ??
         '';
 
-    final int dataRowIndex = dataGridRows.indexOf(dataGridRow);
+    final int dataRowIndex = _dataGridRows.indexOf(dataGridRow);
 
     if (newCellValue == null || oldValue == newCellValue) {
       return;
@@ -67,17 +67,17 @@ class EmployeeDataSource extends DataGridSource {
     editedRowIndex = dataRowIndex;
 
     if (column.columnName == 'name') {
-      dataGridRows[dataRowIndex].getCells()[rowColumnIndex.columnIndex] =
+      _dataGridRows[dataRowIndex].getCells()[rowColumnIndex.columnIndex] =
           DataGridCell<String>(columnName: 'name', value: newCellValue);
       employees[dataRowIndex].name = newCellValue.toString();
     } else if (column.columnName == 'yValue') {
       num? yValue = newCellValue as num?;
-      dataGridRows[dataRowIndex].getCells()[rowColumnIndex.columnIndex] =
+      _dataGridRows[dataRowIndex].getCells()[rowColumnIndex.columnIndex] =
           DataGridCell<num?>(columnName: 'yValue', value: yValue);
       employees[dataRowIndex].yValue = yValue;
     }
 
-    updateChart.call();
+    _updateChartData.call();
   }
 
   @override
@@ -99,7 +99,7 @@ class EmployeeDataSource extends DataGridSource {
       padding: const EdgeInsets.all(8.0),
       alignment: isNumericType ? Alignment.centerRight : Alignment.centerLeft,
       child: TextField(
-        controller: editingController..text = displayText,
+        controller: _editingController..text = displayText,
         textAlign: isNumericType ? TextAlign.right : TextAlign.left,
         autofocus: true,
         decoration: const InputDecoration(
@@ -145,7 +145,7 @@ class EmployeeDataSource extends DataGridSource {
     }
 
     if (_previousSortDirection != sortDirection) {
-      updateChartSorting.call();
+      _updateChartSorting.call();
       _previousSortDirection = sortDirection;
     }
     return super.performSorting(rows);

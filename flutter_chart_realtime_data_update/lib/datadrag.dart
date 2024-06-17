@@ -39,21 +39,21 @@ class _MyAppState extends State<MyApp> {
             minimum: 0,
             maximum: 50,
           ),
-          onChartTouchInteractionMove: (tapArgs) {
+          onChartTouchInteractionMove: (ChartTouchInteractionArgs tapArgs) {
             _updateDataPoint(tapArgs);
           },
-          onChartTouchInteractionUp: (tapArgs) {
+          onChartTouchInteractionUp: (ChartTouchInteractionArgs tapArgs) {
             _updateDataPoint(tapArgs);
             pointIndex = null;
           },
           series: <CartesianSeries<ChartData, num>>[
             LineSeries<ChartData, num>(
               dataSource: chartData,
-              xValueMapper: (ChartData data, _) => data.x,
-              yValueMapper: (ChartData data, _) => data.y,
+              xValueMapper: (ChartData data, int index) => data.x,
+              yValueMapper: (ChartData data, int index) => data.y,
               color: const Color.fromRGBO(99, 85, 199, 1),
               markerSettings: const MarkerSettings(isVisible: true),
-              onPointLongPress: (pointInteractionDetails) {
+              onPointLongPress: (ChartPointDetails pointInteractionDetails) {
                 pointIndex = pointInteractionDetails.pointIndex;
               },
               onRendererCreated: (ChartSeriesController controller) {

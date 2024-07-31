@@ -2,7 +2,7 @@
 
 This repository contains a sample to mastering dynamic editing, sorting on [Syncfusion Flutter Chart](https://help.syncfusion.com/flutter/cartesian-charts/getting-started) widget.
 
-Please refer the Blog through this [link]().
+Please refer the Blog through this [link](https://www.syncfusion.com/blogs/post/dynamic-editing-in-flutter-charts).
 
 ## Syncfusion controls:
 
